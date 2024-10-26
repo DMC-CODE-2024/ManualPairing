@@ -63,7 +63,7 @@ public class SystemConfigurationServiceImpl implements SystemConfigurationServic
     public Set<String> getAllowedDeviceTypes() throws RuntimeException {
         String key = SystemConfigKeys.valid_pairing_device_type;
         if (CollectionUtils.isEmpty(deviceTypes)) {
-            List<SysParam> values = repository.findByConfigKeyAndModule(key, appConfig.getFeatureName());
+            List<SysParam> values = repository.findByConfigKey(key);
             if (CollectionUtils.isEmpty(values)) {
                 moduleAlertService.sendConfigurationMissingAlert(key, appConfig.getFeatureName());
                 throw new RuntimeException("Missing Key in Sys Param " + SystemConfigKeys.valid_pairing_device_type);
@@ -90,7 +90,7 @@ public class SystemConfigurationServiceImpl implements SystemConfigurationServic
     @Override
     public LocalTime getNotificationSmsStartTime() {
         String key = SystemConfigKeys.notification_sms_start_time;
-        List<SysParam> values = repository.findByConfigKeyAndModule(key, appConfig.getFeatureName());
+        List<SysParam> values = repository.findByConfigKey(key);
         if (notificationSmsStartTime == null) {
             if (!CollectionUtils.isEmpty(values)) {
                 String value = values.get(0).getConfigValue();
@@ -113,7 +113,7 @@ public class SystemConfigurationServiceImpl implements SystemConfigurationServic
     @Override
     public LocalTime getNotificationSmsEndTime() {
         String key = SystemConfigKeys.notification_sms_end_time;
-        List<SysParam> values = repository.findByConfigKeyAndModule(key, appConfig.getFeatureName());
+        List<SysParam> values = repository.findByConfigKey(key);
         if (notificationSmsEndTime == null) {
             if (!CollectionUtils.isEmpty(values)) {
                 String value = values.get(0).getConfigValue();
@@ -137,7 +137,7 @@ public class SystemConfigurationServiceImpl implements SystemConfigurationServic
     public Integer getPairingAllowDays() {
         String key = SystemConfigKeys.pairing_allowed_days;
         if (pairingAllowedDays == null) {
-            List<SysParam> values = repository.findByConfigKeyAndModule(key, appConfig.getFeatureName());
+            List<SysParam> values = repository.findByConfigKey(key);
             if (!CollectionUtils.isEmpty(values)) {
                 try {
                     pairingAllowedDays = Integer.parseInt(values.get(0).getConfigValue());
@@ -158,7 +158,7 @@ public class SystemConfigurationServiceImpl implements SystemConfigurationServic
     public Integer getPairingAllowCount() {
         String key = SystemConfigKeys.pairing_allowed_count;
         if (pairingAllowedCount == null) {
-            List<SysParam> values = repository.findByConfigKeyAndModule(key, appConfig.getFeatureName());
+            List<SysParam> values = repository.findByConfigKey(key);
             if (!CollectionUtils.isEmpty(values)) {
                 try {
                     pairingAllowedCount = Integer.parseInt(values.get(0).getConfigValue());
@@ -179,7 +179,7 @@ public class SystemConfigurationServiceImpl implements SystemConfigurationServic
     public Integer getMsisdnMinLength() {
         String key = SystemConfigKeys.msisdn_min_length;
         if (msisdnMinLength == null) {
-            List<SysParam> values = repository.findByConfigKeyAndModule(key, appConfig.getFeatureName());
+            List<SysParam> values = repository.findByConfigKey(key);
             if (!CollectionUtils.isEmpty(values)) {
                 try {
                     msisdnMinLength = Integer.parseInt(values.get(0).getConfigValue());
@@ -200,7 +200,7 @@ public class SystemConfigurationServiceImpl implements SystemConfigurationServic
     public Integer getMsisdnMaxLength() {
         String key = SystemConfigKeys.msisdn_max_length;
         if (msisdnMaxLength == null) {
-            List<SysParam> values = repository.findByConfigKeyAndModule(key, appConfig.getFeatureName());
+            List<SysParam> values = repository.findByConfigKey(key);
             if (!CollectionUtils.isEmpty(values)) {
                 try {
                     msisdnMaxLength = Integer.parseInt(values.get(0).getConfigValue());
@@ -221,7 +221,7 @@ public class SystemConfigurationServiceImpl implements SystemConfigurationServic
     public Integer getMaxOtpValidRetries() {
         String key = SystemConfigKeys.pairing_otp_max_valid_retries;
         if (maxOtpValidRetries == null) {
-            List<SysParam> values = repository.findByConfigKeyAndModule(key, appConfig.getFeatureName());
+            List<SysParam> values = repository.findByConfigKey(key);
             if (!CollectionUtils.isEmpty(values)) {
                 try {
                     maxOtpValidRetries = Integer.parseInt(values.get(0).getConfigValue());
