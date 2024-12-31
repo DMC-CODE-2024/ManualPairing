@@ -48,6 +48,9 @@ public class ImeiPairDetailHis {
     @Column(name = "imsi")
     private String imsi;
 
+    @Column(name = "msisdn")
+    private String msisdn;
+
     @Column(name = "action")
     private String action;
 
