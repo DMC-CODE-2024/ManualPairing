@@ -734,47 +734,43 @@ public class ManualPairingOrchestrator {
             smsPlaceHolder.put(SmsPlaceHolders.OTP, String.valueOf(requestDto.getOtp()));
             ImeiManualPairMgmt imeiManualPairMgmt = imeiManualPairMgmtService.findByRequestId(requestDto.getRequestId());
 
-            if (ImeiManualPairMgmtStatuses.FAIL.name().equals(imeiManualPairMgmt.getStatus()) || ImeiManualPairMgmtStatuses.DONE.name().equals(imeiManualPairMgmt.getStatus())) {
-                responseDto = ResponseDtoUtil.getSuccessResponseDto(OtpVerifyResponseDto.builder().response(SmsTag.HTTP_RESP_REQUEST_ALREADY_PROCESSED.getHttpResp()).description(smsConfigurationService.getSms(SmsTag.HTTP_RESP_REQUEST_ALREADY_PROCESSED, smsPlaceHolder, imeiManualPairMgmt.getLanguage(), ModuleNames.MANUAL_PAIRING_MODULE_NAME).getMsg()).build());
-            }
-
-            imeiManualPairMgmt.setOtpRetriesCount(imeiManualPairMgmt.getOtpRetriesCount() + 1);
-            log.info("Otp Verify Saved imeiManualPairMgmt:{} ", imeiManualPairMgmt);
             if (imeiManualPairMgmt == null) {
                 log.info("OTP Verification imeiManualPairMgmt not found for requestDto: {}", requestDto);
                 throw new ResourceNotFoundException("Invalid Request Id " + requestDto.getRequestId());
             }
+            if (ImeiManualPairMgmtStatuses.FAIL.name().equals(imeiManualPairMgmt.getStatus()) || ImeiManualPairMgmtStatuses.DONE.name().equals(imeiManualPairMgmt.getStatus())) {
+                OtpVerifyResponseDto otpVerifyResponseDto = OtpVerifyResponseDto.builder().response(SmsTag.HTTP_RESP_REQUEST_ALREADY_PROCESSED.getHttpResp()).description(smsConfigurationService.getSms(SmsTag.HTTP_RESP_REQUEST_ALREADY_PROCESSED, smsPlaceHolder, imeiManualPairMgmt.getLanguage(), ModuleNames.MANUAL_PAIRING_MODULE_NAME).getMsg()).build();
+                return ResponseDtoUtil.getSuccessResponseDto(otpVerifyResponseDto);
+            }
+            imeiManualPairMgmt.setOtpRetriesCount(imeiManualPairMgmt.getOtpRetriesCount() + 1);
             if (requestDto.getOtp().intValue() == imeiManualPairMgmt.getOtp().intValue()) {
                 imeiManualPairMgmt.setStatus(ImeiManualPairMgmtStatuses.INIT.name());
                 imeiManualPairMgmtService.save(imeiManualPairMgmt);
                 log.info("OTP is valid for requestDto: {}", requestDto);
                 switch (imeiManualPairMgmt.getRequestType()) {
-                    case PAIR -> {
-                        responseDto = doPair(imeiManualPairMgmt);
-                    }
-                    case REPAIR -> {
-                        responseDto = doRePair(imeiManualPairMgmt);
-                    }
-                    case PAIR_STATUS -> {
-                        responseDto = successVerifyOtpStatus(imeiManualPairMgmt);
-                    }
+                    case PAIR -> responseDto = doPair(imeiManualPairMgmt);
+                    case REPAIR -> responseDto = doRePair(imeiManualPairMgmt);
+                    case PAIR_STATUS -> responseDto = successVerifyOtpStatus(imeiManualPairMgmt);
                 }
             } else {
-                if (systemConfigurationService.getMaxOtpValidRetries() >= imeiManualPairMgmt.getOtpRetriesCount()) {
+                Integer maxRetries = systemConfigurationService.getMaxOtpValidRetries();
+                if (maxRetries >= imeiManualPairMgmt.getOtpRetriesCount()) {
                     log.info("OTP is Invalid for requestDto: {}", requestDto);
-                    imeiManualPairMgmt.setFailReason(SmsTag.HTTP_RESP_OTP_VALIDATION_FAIL.getDescription());
+                    Integer leftAttempts = maxRetries - imeiManualPairMgmt.getOtpRetriesCount();
+                    smsPlaceHolder.put(SmsPlaceHolders.OTP_COUNT_LEFT, String.valueOf(leftAttempts)); // Update the placeholder
+                    OtpVerifyResponseDto otpVerifyResponseDto = OtpVerifyResponseDto.builder().response(SmsTag.HTTP_RESP_OTP_VALIDATION_FAIL.getHttpResp()).description(smsConfigurationService.getSms(SmsTag.HTTP_RESP_OTP_VALIDATION_FAIL, smsPlaceHolder, imeiManualPairMgmt.getLanguage(), ModuleNames.MANUAL_PAIRING_MODULE_NAME).getMsg()).build();
+                    imeiManualPairMgmt.setFailReason(otpVerifyResponseDto.getDescription());
                     imeiManualPairMgmtService.save(imeiManualPairMgmt);
-                    Integer leftAttempts = systemConfigurationService.getMaxOtpValidRetries() - imeiManualPairMgmt.getOtpRetriesCount();
                     log.info("Otp Invalid Saved imeiManualPairMgmt:{} ", imeiManualPairMgmt);
-                    smsPlaceHolder.put(SmsPlaceHolders.OTP_COUNT_LEFT, String.valueOf(leftAttempts));
-                    responseDto = ResponseDtoUtil.getSuccessResponseDto(OtpVerifyResponseDto.builder().response(SmsTag.HTTP_RESP_OTP_VALIDATION_FAIL.getHttpResp()).description(smsConfigurationService.getSms(SmsTag.HTTP_RESP_OTP_VALIDATION_FAIL, smsPlaceHolder, imeiManualPairMgmt.getLanguage(), ModuleNames.MANUAL_PAIRING_MODULE_NAME).getMsg()).build());
+                    responseDto = ResponseDtoUtil.getSuccessResponseDto(otpVerifyResponseDto);
                 } else {
                     log.info("Otp Limit Exhausted Saved imeiManualPairMgmt:{} ", imeiManualPairMgmt);
+                    OtpVerifyResponseDto otpVerifyResponseDto = OtpVerifyResponseDto.builder().response(SmsTag.HTTP_RESP_OTP_VALIDATION_FAIL_MAX_RETRY.getHttpResp()).description(smsConfigurationService.getSms(SmsTag.HTTP_RESP_OTP_VALIDATION_FAIL_MAX_RETRY, smsPlaceHolder, imeiManualPairMgmt.getLanguage(), ModuleNames.MANUAL_PAIRING_MODULE_NAME).getMsg()).build();
                     imeiManualPairMgmt.setStatus(ImeiManualPairMgmtStatuses.FAIL.name());
-                    imeiManualPairMgmt.setFailReason(SmsTag.HTTP_RESP_OTP_VALIDATION_FAIL_MAX_RETRY.getDescription());
+                    imeiManualPairMgmt.setFailReason(otpVerifyResponseDto.getDescription());
                     imeiManualPairMgmtService.save(imeiManualPairMgmt);
                     log.info("Otp Invalid Saved imeiManualPairMgmt:{} ", imeiManualPairMgmt);
-                    responseDto = ResponseDtoUtil.getSuccessResponseDto(OtpVerifyResponseDto.builder().response(SmsTag.HTTP_RESP_OTP_VALIDATION_FAIL_MAX_RETRY.getHttpResp()).description(smsConfigurationService.getSms(SmsTag.HTTP_RESP_OTP_VALIDATION_FAIL_MAX_RETRY, smsPlaceHolder, imeiManualPairMgmt.getLanguage(), ModuleNames.MANUAL_PAIRING_MODULE_NAME).getMsg()).build());
+                    responseDto = ResponseDtoUtil.getSuccessResponseDto(otpVerifyResponseDto);
                 }
             }
         } catch (Exception e) {
