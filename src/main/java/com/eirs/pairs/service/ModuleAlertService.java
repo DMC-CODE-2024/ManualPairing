@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class ModuleAlertService {
@@ -44,7 +46,7 @@ public class ModuleAlertService {
 
     public void sendDatabaseAlert(String error, String featureName) {
         Map<AlertMessagePlaceholders, String> map = new HashMap<>();
-        map.put(AlertMessagePlaceholders.EXCEPTION, error);
+        map.put(AlertMessagePlaceholders.EXCEPTION, error.length()>90 ? error.substring(0,90):error);
         map.put(AlertMessagePlaceholders.FEATURE_NAME, featureName);
         if (error.contains("doesn't exist")) {
             alertService.sendAlert(AlertIds.DATABASE_TABLE_EXCEPTION, map);
@@ -59,5 +61,13 @@ public class ModuleAlertService {
         map.put(AlertMessagePlaceholders.CONFIG_VALUE, configValue);
         alertService.sendAlert(AlertIds.CONFIGURATION_VALUE_WRONG, map);
     }
-
+    public String extractTableNameFromMessage(String message) {
+        String tableName = null;
+        Pattern pattern = Pattern.compile("Table '\\S+\\.(\\S+)' doesn't exist");
+        Matcher matcher = pattern.matcher(message);
+        if (matcher.find()) {
+            tableName = matcher.group(1);
+        }
+        return tableName;
+    }
 }
